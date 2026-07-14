@@ -15,6 +15,14 @@ interface FileSystemProvider : XideProvider {
     suspend fun delete(path: String): Boolean
     suspend fun mkdir(path: String): Boolean
     suspend fun exists(path: String): Boolean
+    suspend fun move(sourcePath: String, targetPath: String): Boolean {
+        // Default naive implementation, should be overridden by concrete providers
+        if (!exists(sourcePath)) return false
+        val content = readFile(sourcePath).use { it.readBytes() }
+        writeFile(targetPath).use { it.write(content) }
+        delete(sourcePath)
+        return true
+    }
 }
 
 data class FileNode(

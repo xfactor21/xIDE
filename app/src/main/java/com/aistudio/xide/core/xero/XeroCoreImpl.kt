@@ -187,15 +187,20 @@ class XeroCoreImpl(
             recentChanges = recentChangesList,
             buildStatus = buildStateStr,
             diagnostics = activeProblems,
-            availableActions = listOf("CreateFile", "ModifyFile", "DeleteFile", "RenameFile", "ExplainCode", "AnalyzeError", "SuggestFix"),
+            availableActions = listOf("CreateFile", "ModifyFile", "DeleteFile", "RenameFile", "MoveFile", "ExplainCode", "AnalyzeError", "SuggestFix"),
             pendingApprovals = pending,
             recentAiOperations = recentOps,
-            previousChanges = prevChanges,
+            previousApprovedChanges = prevChanges,
             symbolInformation = symbolInfo,
+            relatedSymbols = index?.symbols?.map { it.name } ?: emptyList(),
             relatedFiles = relatedFiles,
+            dependencyRelationships = depGraph,
             dependencyGraph = depGraph,
             diagnosticRelationships = diagRels,
-            codeSummaries = summaries
+            codeSummaries = summaries,
+            recentFileActivity = recentChangesList,
+            openEditorState = activeFile?.let { mapOf(it to "open") } ?: emptyMap(),
+            rollbackAvailability = true
         )
     }
 

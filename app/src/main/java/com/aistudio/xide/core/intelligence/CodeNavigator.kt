@@ -53,4 +53,41 @@ class CodeNavigator(private val projectIndexer: ProjectIndexer) {
             it.sourceSymbol.equals(symbolName, ignoreCase = true) || it.targetSymbol.equals(symbolName, ignoreCase = true)
         }
     }
+
+    suspend fun findImplementations(projectPath: String, symbolName: String): List<String> {
+        val index = projectIndexer.getIndex(projectPath) ?: return emptyList()
+        return index.relationships
+            .filter { it.targetSymbol.equals(symbolName, ignoreCase = true) && it.relationshipType == "extends" }
+            .map { it.sourceSymbol }
+            .distinct()
+    }
+
+    suspend fun findRelatedSymbols(projectPath: String, symbolName: String): List<String> {
+        val index = projectIndexer.getIndex(projectPath) ?: return emptyList()
+        return index.relationships
+            .filter { it.sourceSymbol.equals(symbolName, ignoreCase = true) || it.targetSymbol.equals(symbolName, ignoreCase = true) }
+            .map { if (it.sourceSymbol.equals(symbolName, ignoreCase = true)) it.targetSymbol else it.sourceSymbol }
+            .distinct()
+    }
+
+    suspend fun getSymbolHierarchyView(projectPath: String, symbolName: String): String {
+        val index = projectIndexer.getIndex(projectPath) ?: return "No symbol data available"
+        val parents = index.relationships.filter { it.sourceSymbol.equals(symbolName, ignoreCase = true) && it.relationshipType == "extends" }.map { it.targetSymbol }
+        val children = findImplementations(projectPath, symbolName)
+        
+        val sb = StringBuilder()
+        sb.append("Hierarchy for $symbolName:\n")
+        if (parents.isNotEmpty()) {
+            sb.append("  Parents:\n")
+            parents.forEach { sb.append("    - $it\n") }
+        }
+        if (children.isNotEmpty()) {
+            sb.append("  Children:\n")
+            children.forEach { sb.append("    - $it\n") }
+        }
+        if (parents.isEmpty() && children.isEmpty()) {
+            sb.append("  No hierarchy data found.")
+        }
+        return sb.toString()
+    }
 }

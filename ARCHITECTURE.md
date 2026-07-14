@@ -274,5 +274,88 @@ xIDE establishes a highly secure, formal foundation for safe AI-assisted enginee
 ```
 
 
+### 24. Intelligent Development Assistant Interface Foundation (Phase 18)
+xIDE introduces the developer-facing intelligence conversation layer. It enables developers to communicate naturally with Xero to receive accurate, structured workspace assistance, while enforcing a strict read-only boundary for analysis and explicit approval controls for proposals.
+
+- **Deterministic Intent Classification**: Queries are classified into distinct intents (`EXPLAIN_CODE`, `DEBUG_ERROR`, `FIND_SYMBOL`, `SEARCH_PROJECT`, `ANALYZE_BUILD`, `SUGGEST_IMPROVEMENT`, `CREATE_ACTION_PROPOSAL`).
+- **Context Selection Engine**: The `ContextSelector` chooses context (active files, related symbols, diagnostics, build status, and dependency information), protecting tokens and completely blocking secret files (e.g., `.env`, `.properties`) from being processed.
+- **Structured Response Assembly**: Responses are formatted into clean, typed outcomes (`Explanation`, `DiagnosticReport`, `SearchResult`, `CodeInsight`, `ActionProposal`) containing confidence scores, supporting files, next steps, and related symbols.
+- **Bounded Local History & Lifecycles**: A local, secure, secret-scrubbing `ConversationHistory` records historical entries up to a strict capacity, and `XeroAssistantState` (`IDLE`, `THINKING`, `ANALYZING`, `RESPONDING`, `WAITING_APPROVAL`, `ERROR`) represents Xero's operational phase.
+
+```
+Developer Request
+       ↓
+Intent Classifier (EXPLAIN_CODE, DEBUG_ERROR, FIND_SYMBOL, etc.)
+       ↓
+Context Selector (Loads Snippets, Redacts Secrets, Truncates Dumps)
+       ↓
+Subsystem Queries (Indexer, Navigator, DiagnosticsEngine, BuildService)
+       ↓
+Response Assembly (Explanation, DiagnosticReport, SearchResult, CodeInsight, ActionProposal)
+       ↓
+State Updates (IDLE -> THINKING -> ANALYZING -> RESPONDING -> IDLE/WAITING_APPROVAL)
+```
+
+### 19. Developer Workspace Surface Architecture (Phase 20)
+
+The IDE Workspace Surface is a highly decoupled, modern, responsive multi-pane editing environment built entirely using Jetpack Compose and Material 3 design tokens.
+
+```
+       +-------------------------------------------------------------+
+       |                  DeveloperWorkspaceScreen                   |
+       |                   (Master Orchestrator)                     |
+       +-------------------------------------------------------------+
+                                      |
+                      Uses WorkspaceNavigationManager
+                                      |
+       +------------------+------------------+-----------------------+
+       |                  |                  |                       |
+       ↓                  ↓                  ↓                       ↓
++--------------+   +--------------+   +--------------+       +--------------+
+|   Project    |   |    Editor    |   |     Xero     |       | Diagnostics &|
+|   Explorer   |   |  Workspace   |   |  Assistant   |       |    Build     |
+|   Panel      |   |    Panel     |   |    Panel     |       |    Panels    |
++--------------+   +--------------+   +--------------+       +--------------+
+       |                  |                  |                       |
+   VFS Files           Tracks             Approval               Triggers
+   & Search            Cursor &          Workflows,              Compiles,
+                       Selection         Interactive             Jumps to
+                                         Action Cards            Source Line
+```
+
+- **`DeveloperWorkspaceScreen` (Master Orchestrator)**: Regulates the available screen real-estate based on Material 3 Window Size Classes (`Compact`, `Medium`, `Expanded`). On phone devices, it renders single-pane tabs using bottom/side navigation, whereas on tablet or foldable surfaces, it displays a dual-pane layout with the Project Explorer and Editor side-by-side.
+- **`ProjectExplorerPanel`**: Displays directory files, traversal breadcrumbs, and real-time directory indexing, utilizing the read-only file listing capabilities of `VirtualFileSystem`.
+- **`EditorWorkspacePanel`**: Provides document tab switches and text editing surfaces. Reactive selection and cursor locations are automatically bridged to the assistant context via `ActiveEditorContext` to empower context-specific conversation replies.
+- **`XeroAssistantPanel` (Human-in-the-Loop Dialog)**: Implements visual conversation flows, including thinking indicators, response markdown rendering, and interactive approval cards that prompt developers to approve or reject proposed `AIAction`s.
+- **`DiagnosticsPanel`**: Subscribes directly to `DiagnosticsEngine` to group and display live compiler errors. Clicking on any error item initiates a navigation call to open that file and move the cursor directly to the precise error line.
+- **`BuildPanel`**: Orchestrates triggering builds, cancellation, progress updates, and reporting generated artifact sizes directly from `BuildService`.
+
+### 20. Advanced Code Intelligence & Assisted Engineering (Phase 21)
+
+Xero's contextual awareness and intelligence routing have been expanded to form a Semantic Code Relationship Graph:
+- **`ProjectIndexerImpl`**: Extracts symbols, relationships, and dependencies to construct a lightweight semantic graph.
+- **`DiagnosticAnalyzer`**: Builds `DiagnosticChain` structures that group related errors under a singular root cause with suggested resolutions.
+- **`VirtualFileSystem`**: Supports safe `moveFile` and `renameFile` operations, bound tightly by path traversal security checks.
+- **`ActionProposalCard`**: Prepares visual diff foundations via `ChangeDiffModel` outlining added, removed, and modified segments.
+- **`QueryRouter`**: Expanded to handle natural language queries regarding architectural relationships, recent file mutations, and dependency graphs.
+
+### 21. Semantic Editor Intelligence & Coding Experience (Phase 22)
+
+Xero's contextual awareness extends natively into the text editor, providing deep semantic intelligence:
+- **`EditorAnalysisEngine`**: Provides lightweight, live syntax and logic validation inside the editor.
+- **`SemanticHighlightProvider`**: Extracts class, function, and property boundaries to power context-aware syntax coloring.
+- **`CodeImprovementAnalyzer`**: Scans the active document for structural improvements, suggesting fixes via immutable `ChangePreview` structures.
+- **`ActiveEditorContext`**: Expands to track symbol-under-cursor, active diagnostics, and surrounding logical blocks.
+- **`ChangePreview`**: Upgraded to retain detailed line-by-line semantic diffs, segment metadata, and hash-validated explanations.
 
 
+
+
+
+
+
+### 17. Build Pipeline
+The Build Pipeline (`core/build`) executes real compiler interactions through the Gradle Build Provider. 
+- **GradleBuildProvider**: Leverages ProcessBuilder to execute the Gradle wrapper with explicit whitelist validation.
+- **APKArtifactResolver**: Extracts APK artifacts matching output directory structures, size constraints, and validation boundaries.
+- **BuildService**: Manages the build lifecycle and broadcasts status to UI via StateFlows.

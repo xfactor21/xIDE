@@ -74,4 +74,12 @@ class LocalFileSystemProvider : FileSystemProvider {
     override suspend fun exists(path: String): Boolean = withContext(Dispatchers.IO) {
         File(path).exists()
     }
+
+    override suspend fun move(sourcePath: String, targetPath: String): Boolean = withContext(Dispatchers.IO) {
+        val src = File(sourcePath)
+        val dst = File(targetPath)
+        if (!src.exists()) return@withContext false
+        dst.parentFile?.mkdirs()
+        src.renameTo(dst)
+    }
 }

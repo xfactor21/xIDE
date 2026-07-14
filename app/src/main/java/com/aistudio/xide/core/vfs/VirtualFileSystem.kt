@@ -84,6 +84,21 @@ class VirtualFileSystem(
         return deleted
     }
 
+    suspend fun moveFile(sourcePath: String, targetPath: String): Boolean {
+        val safeSource = validatePath(sourcePath)
+        val safeTarget = validatePath(targetPath)
+        if (!fsProvider.exists(safeSource)) {
+            return false
+        }
+        val moved = fsProvider.move(safeSource, safeTarget)
+        if (moved) {
+            eventBus.publish(VfsEvent.FileDeleted(safeSource))
+            eventBus.publish(VfsEvent.FileCreated(safeTarget))
+            activeWorkspaceRoot?.let { indexer.indexProject(it) }
+        }
+        return moved
+    }
+
     suspend fun searchFiles(query: String): List<FileNode> {
         val root = activeWorkspaceRoot ?: return emptyList()
         val results = mutableListOf<FileNode>()
