@@ -16,6 +16,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import com.aistudio.xide.core.build.ArtifactResolver
+import com.aistudio.xide.core.build.BuildServiceImpl
+import com.aistudio.xide.core.build.GradleBuildProvider
+import com.aistudio.xide.core.build.ui.BuildScreen
+import com.aistudio.xide.core.build.ui.BuildViewModel
+import com.aistudio.xide.core.diagnostics.DiagnosticsEngineImpl
 import com.aistudio.xide.core.dashboard.DashboardEvent
 import com.aistudio.xide.core.dashboard.DashboardScreen
 import com.aistudio.xide.core.dashboard.DashboardState
@@ -33,6 +39,13 @@ class MainActivity : ComponentActivity() {
     enableEdgeToEdge()
     
     val destinationRegistry = DestinationRegistry()
+    
+    // Core Build & Diagnostics pipeline setup
+    val diagnosticsEngine = DiagnosticsEngineImpl()
+    val buildProvider = GradleBuildProvider { "." }
+    val artifactResolver = ArtifactResolver { "." }
+    val buildService = BuildServiceImpl(listOf(buildProvider), diagnosticsEngine, artifactResolver)
+    val buildViewModel = BuildViewModel(buildService, diagnosticsEngine) { "." }
     
     setContent {
       XideTheme {
@@ -54,6 +67,9 @@ class MainActivity : ComponentActivity() {
                     state = DashboardState(),
                     onEvent = {}
                 )
+                "templates" -> BuildScreen(
+                    viewModel = buildViewModel
+                )
                 else -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Text("Screen: ${shellState.navigationState.currentRoute} (Not Implemented)")
@@ -65,3 +81,4 @@ class MainActivity : ComponentActivity() {
     }
   }
 }
+

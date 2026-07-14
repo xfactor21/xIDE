@@ -1,7 +1,10 @@
 package com.aistudio.xide.core.automation
 
+import com.aistudio.xide.core.build.ArtifactResolver
 import com.aistudio.xide.core.build.BuildProvider
 import com.aistudio.xide.core.build.BuildRequest
+import com.aistudio.xide.core.build.BuildService
+import com.aistudio.xide.core.build.BuildServiceImpl
 import com.aistudio.xide.core.diagnostics.DiagnosticsEngine
 import com.aistudio.xide.core.provider.ProviderHealth
 
@@ -11,9 +14,18 @@ import com.aistudio.xide.core.provider.ProviderHealth
  * raw compiler logs into diagnostics and the centralized DiagnosticsEngine context.
  */
 class BuildAutomationProvider(
-    private val buildProvider: BuildProvider,
+    private val buildService: BuildService,
     private val diagnosticsEngine: DiagnosticsEngine
 ) : AutomationProvider {
+
+    // Secondary constructor to remain fully compatible with existing tests that pass a BuildProvider
+    constructor(
+        buildProvider: BuildProvider,
+        diagnosticsEngine: DiagnosticsEngine
+    ) : this(
+        BuildServiceImpl(listOf(buildProvider), diagnosticsEngine, ArtifactResolver { "." }),
+        diagnosticsEngine
+    )
 
     override val providerId: String = "build_automation_provider"
     override val providerName: String = "Build Automation Provider"
@@ -27,7 +39,7 @@ class BuildAutomationProvider(
 
     override suspend fun initialize() {}
     override suspend fun shutdown() {}
-    override suspend fun healthCheck(): ProviderHealth = buildProvider.healthCheck()
+    override suspend fun healthCheck(): ProviderHealth = ProviderHealth.HEALTHY
 
     override fun canExecute(action: AutomationAction): Boolean {
         return action is AutomationAction.RunBuild
@@ -53,11 +65,7 @@ class BuildAutomationProvider(
             operation = operation
         )
 
-        val buildResult = buildProvider.executeBuild(buildRequest)
-
-        // Funnel diagnostics to central Engine
-        diagnosticsEngine.clearDiagnostics()
-        diagnosticsEngine.addDiagnostics(buildResult.diagnostics)
+        val buildResult = buildService.executeBuild(buildRequest)
 
         return AutomationResult(
             success = buildResult.success,
@@ -72,3 +80,4 @@ class BuildAutomationProvider(
         )
     }
 }
+

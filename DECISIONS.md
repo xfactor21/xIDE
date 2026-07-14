@@ -125,5 +125,11 @@
 **Reason**: To guarantee the execution of Gradle remains completely secure against task-injection attacks or process manipulation, and ensure that ANSI colors, sensitive tokens (API keys/secrets), or massive trace files never pollute or overflow the AI reasoning context. This builds absolute trust in the AI-assisted developer loop.
 
 
+## 31. Evidence-Based APK Artifact Resolver & Build State Tracking
+**Decision**: APK builds are evidence-based and require verified Gradle output, introducing a dedicated `ArtifactResolver` and tracking state lifecycle with `BuildService`.
+**Reason**: To avoid "fake success" claims or simulated build results. The system demands that a real Gradle process must run to completion with an exit code of `0`, and a real `.apk` binary file with non-zero size must physically exist in the project's canonical output directory before any artifact is reported to the user or Xero.
+
+
+
 
 

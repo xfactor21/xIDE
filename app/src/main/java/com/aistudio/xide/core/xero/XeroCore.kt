@@ -1,6 +1,18 @@
 package com.aistudio.xide.core.xero
 
 /**
+ * Models the project context that Xero is aware of.
+ */
+data class XeroProjectContext(
+    val name: String,
+    val rootPath: String,
+    val activeFile: String?,
+    val recentChanges: List<String>,
+    val buildStatus: String,
+    val diagnostics: List<String>
+)
+
+/**
  * Xero Core Intelligence Layer - The AI Engineering Agent.
  */
 interface XeroCore {
@@ -18,7 +30,13 @@ interface XeroCore {
      * Authorizes Xero to execute a generated plan.
      */
     suspend fun execute(plan: AnalysisPlan): ExecutionResult
+
+    /**
+     * Retrieves the project context Xero is currently aware of.
+     */
+    suspend fun getXeroProjectContext(): XeroProjectContext
 }
+
 
 data class AnalysisPlan(
     val id: String,

@@ -47,7 +47,7 @@ class GradleBuildProvider(
     }
 
     override fun canBuild(request: BuildRequest): Boolean {
-        return request.operation in listOf("assembleDebug", "compileDebugKotlin", "test", "lint", "build")
+        return request.operation in listOf("assembleDebug", "assembleRelease", "compileDebugKotlin", "test", "lint", "build")
     }
 
     override suspend fun executeBuild(request: BuildRequest): BuildResult = withContext(Dispatchers.IO) {

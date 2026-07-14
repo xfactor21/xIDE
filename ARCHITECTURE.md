@@ -217,3 +217,27 @@ To ensure xIDE's build pipeline is secure, real, and compliant, a thorough audit
 - **Evidence-Based Artifact Discovery**: Artifact details (`ArtifactInfo`) are generated exclusively when a real compiler execution succeeds AND `apkFile.exists()` passes validation, guaranteeing no assumed or mock artifacts are reported to Xero.
 
 
+### 22. APK Build Pipeline Activation & Artifact Delivery (Phase 14)
+xIDE activates a real Gradle APK compiler engine, making it fully capable of producing verified production/debug binaries.
+- **Orchestration Layer**: `BuildService` and `BuildServiceImpl` manage the execution state of the compiler. They track lifecycle phases through `BuildState` (`IDLE`, `RUNNING`, `SUCCESS`, `FAILED`, `CANCELLED`) and pipe diagnostic updates to the centralized `DiagnosticsEngine`.
+- **Evidence-Based Artifact Resolver**: `ArtifactResolver` performs post-build verification. It qualifies artifacts by checking that the build exited with `0`, the binary has a `.apk` file extension, has a non-zero file size, and resides securely inside the project's canonical workspace build outputs directory (rejecting path traversals).
+- **Synchronized UI & Agent Context**: When builds are run (either via the "Build APK" UI panel or via Xero's AI request planner), states change uniformly. This enables the UI dashboard and Xero to reflect compiler progress, error diagnostics, and successful artifact summaries in real time.
+
+```
+User UI / Xero Proposes
+         ↓
+    BuildService
+         ↓
+  BuildServiceImpl
+         ↓
+ GradleBuildProvider (compileDebugKotlin / assembleDebug)
+         ↓
+  ProcessBuilder (./gradlew)
+         ↓
+  ArtifactResolver (Validates binary size, path, extension)
+         ↓
+   State Flow (SUCCESS / FAILED) -> Rendered to UI
+```
+
+
+

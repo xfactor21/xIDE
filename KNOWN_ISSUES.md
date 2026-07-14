@@ -14,6 +14,10 @@ This file tracks known architectural limitations, bugs, and technical debt.
 
 ## Virtual File System (VFS)
 - **SAF Integration**: `LocalFileSystemProvider` currently relies on standard `java.io.File` APIs. This will violate Scoped Storage on modern Android devices when accessing external directories. Future phases must migrate this to Storage Access Framework (SAF) which introduces asynchronous document trees and permission intents.
+- **VFS Transaction Locking**: Concurrent quick-succession writes could benefit from transactional read/write locking channels to prevent race conditions during heavy parallel file access.
+
+## Project Indexing
+- **Regex-Based AST Approximation**: The lightweight indexing engine parses symbols via optimized regex. While extremely performant, lightweight, and offline-friendly, it does not build a full AST semantic graph, meaning complex inline nested classes or multi-file alias imports might be unresolved.
 
 ## Room Database
 - **Migrations**: WorkspaceDatabase is currently on version 1. Future iterations will require explicit Room migrations when schemas change.

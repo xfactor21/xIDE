@@ -1,6 +1,8 @@
 package com.aistudio.xide.core.events
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 
 /**
  * Event System Foundation.
@@ -10,6 +12,22 @@ interface EventBus {
     fun publish(event: PlatformEvent)
     fun <T : PlatformEvent> subscribe(eventType: Class<T>): Flow<T>
 }
+
+class EventBusImpl : EventBus {
+    private val _events = kotlinx.coroutines.flow.MutableSharedFlow<PlatformEvent>(extraBufferCapacity = 128)
+
+    override fun publish(event: PlatformEvent) {
+        _events.tryEmit(event)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : PlatformEvent> subscribe(eventType: Class<T>): Flow<T> {
+        return _events
+            .filter { eventType.isInstance(it) }
+            .map { it as T }
+    }
+}
+
 
 interface PlatformEvent {
     val eventId: String

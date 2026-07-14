@@ -20,7 +20,10 @@ class XeroCoreImpl(
     private val projectStructureService: ProjectStructureService?,
     private val memoryContext: XeroMemoryContext,
     private val actionPlanner: ActionPlanner? = null,
-    private val automationService: AutomationService? = null
+    private val automationService: AutomationService? = null,
+    private val fileChangeTracker: com.aistudio.xide.core.vfs.FileChangeTracker? = null,
+    private val buildService: com.aistudio.xide.core.build.BuildService? = null,
+    private val workspaceManager: com.aistudio.xide.core.workspace.WorkspaceManager? = null
 ) : XeroCore {
 
     private var currentProjectPath: String? = null
@@ -94,5 +97,32 @@ class XeroCoreImpl(
         }
         
         return ExecutionResult.Success
+    }
+
+    override suspend fun getXeroProjectContext(): XeroProjectContext {
+        val root = currentProjectPath ?: ""
+        val name = if (root.isNotEmpty()) root.substringAfterLast('/') else "Unnamed Project"
+        val activeFile = workspaceManager?.getActiveWorkspace()?.activeFile
+        
+        val recentChangesList = mutableListOf<String>()
+        fileChangeTracker?.let { tracker ->
+            recentChangesList.addAll(tracker.createdFiles.map { "Created: $it" })
+            recentChangesList.addAll(tracker.modifiedFiles.map { "Modified: $it" })
+            recentChangesList.addAll(tracker.deletedFiles.map { "Deleted: $it" })
+        }
+
+        val buildStateStr = buildService?.buildState?.value?.name ?: "IDLE"
+        
+        // Context snapshot build diagnostics filtered for secrets automatically
+        val activeProblems = aiContextManager.captureCurrentContext().buildDiagnostics
+
+        return XeroProjectContext(
+            name = name,
+            rootPath = root,
+            activeFile = activeFile,
+            recentChanges = recentChangesList,
+            buildStatus = buildStateStr,
+            diagnostics = activeProblems
+        )
     }
 }
