@@ -130,6 +130,16 @@
 **Reason**: To avoid "fake success" claims or simulated build results. The system demands that a real Gradle process must run to completion with an exit code of `0`, and a real `.apk` binary file with non-zero size must physically exist in the project's canonical output directory before any artifact is reported to the user or Xero.
 
 
+## 32. Safe AI Action Orchestration and Human-In-The-Loop Approval
+**Decision**: Establish a formal `AIAction` hierarchy, a stateful `ActionApprovalManager` representing human-in-the-loop validation, pre-execution `ChangePreview` calculation, a secure `AIFileOperationProvider` routing changes exclusively through `VirtualFileSystem`, and a comprehensive `ChangeHistory` rollback subsystem.
+**Reason**: This completely blocks Xero from making uncontrolled, direct, or unauthorized modifications to the project files. All filesystem mutations must be explicitly modeled, estimated for risk/impact, formatted into clear user previews, and explicitly approved by a human operator before being executed via validated Virtual File System channels. Furthermore, having a stateful rollback log allows users to undo any automated AI operation at any point safely.
+
+## 33. Read-Only Code Intelligence Boundary
+**Decision**: Enforced that the Code Intelligence layer, search routing systems, symbol navigator, and explanation service operate on a strict read-only basis against the VFS and the Project Indexer. Furthermore, these subsystems are completely isolated from the command execution engine and approval managers, preventing any implicit state mutations.
+**Reason**: Strict containment of AI capabilities. Code intelligence is a tool for reasoning, comprehension, and discovery. By isolating code understanding from mutation APIs, we guarantee that Xero can analyze code deeply and safely without bypassing human-in-the-loop validation barriers.
+
+
+
 
 
 

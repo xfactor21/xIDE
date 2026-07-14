@@ -182,10 +182,27 @@ class ProjectIndexerImpl : ProjectIndexer {
         val lines = content.lines()
         val packageNameRegex = Regex("""package\s+([a-zA-Z_][a-zA-Z0-9._]*)""")
         val importRegex = Regex("""import\s+([a-zA-Z_][a-zA-Z0-9._]*)""")
-        val classRegex = Regex("""(?:class|interface|object)\s+([a-zA-Z_][a-zA-Z0-9_]*)""")
+        val classRegex = Regex("""class\s+([a-zA-Z_][a-zA-Z0-9_]*)""")
+        val interfaceRegex = Regex("""interface\s+([a-zA-Z_][a-zA-Z0-9_]*)""")
+        val objectRegex = Regex("""object\s+([a-zA-Z_][a-zA-Z0-9_]*)""")
+        val functionRegex = Regex("""fun\s+([a-zA-Z_][a-zA-Z0-9_]*)""")
+        val propertyRegex = Regex("""(val|var)\s+([a-zA-Z_][a-zA-Z0-9_]*)""")
+        val constructorRegex = Regex("""constructor\s*\(""")
+        val annotationRegex = Regex("""(@[a-zA-Z_][a-zA-Z0-9_]*)""")
+        val visibilityRegex = Regex("""\b(private|protected|internal|public)\b""")
 
         var packageName = ""
+        val pendingAnnotations = mutableListOf<String>()
+
         for ((index, line) in lines.withIndex()) {
+            val trimmedLine = line.trim()
+            if (trimmedLine.startsWith("//") || trimmedLine.startsWith("/*") || trimmedLine.startsWith("*")) {
+                continue
+            }
+            if (trimmedLine.isEmpty()) {
+                continue
+            }
+
             val packMatch = packageNameRegex.find(line)
             if (packMatch != null) {
                 packageName = packMatch.groupValues[1]
@@ -203,18 +220,170 @@ class ProjectIndexerImpl : ProjectIndexer {
                 )
             }
 
+            val lineAnnotations = annotationRegex.findAll(line).map { it.groupValues[1] }.toList()
+            pendingAnnotations.addAll(lineAnnotations)
+
+            val visibilityMatch = visibilityRegex.find(line)
+            val visibility = visibilityMatch?.groupValues?.get(1) ?: "public"
+            val isOverride = line.contains("override")
+
             val classMatch = classRegex.find(line)
             if (classMatch != null) {
                 val className = classMatch.groupValues[1]
+                val extendsList = mutableListOf<String>()
+                val inheritMatch = Regex("""class\s+([a-zA-Z_][a-zA-Z0-9_]*)(?:\s*\([^)]*\))?\s*:\s*([^{]+)""").find(line)
+                if (inheritMatch != null) {
+                    val bases = inheritMatch.groupValues[2]
+                        .split(",")
+                        .map { it.trim().substringBefore("(").substringBefore("<").trim() }
+                        .filter { it.isNotEmpty() }
+                    extendsList.addAll(bases)
+                    bases.forEach { base ->
+                        relationships.add(
+                            ProjectRelationship(
+                                sourceSymbol = className,
+                                targetSymbol = base,
+                                relationshipType = "extends"
+                            )
+                        )
+                    }
+                }
                 symbols.add(
                     ProjectSymbol(
                         name = className,
                         type = "Class",
                         location = "${file.absolutePath}:${index + 1}",
                         language = "Kotlin",
-                        references = emptyList()
+                        references = emptyList(),
+                        visibility = visibility,
+                        isOverride = isOverride,
+                        annotations = pendingAnnotations.toList(),
+                        extendsList = extendsList
                     )
                 )
+                pendingAnnotations.clear()
+                continue
+            }
+
+            val interfaceMatch = interfaceRegex.find(line)
+            if (interfaceMatch != null) {
+                val interfaceName = interfaceMatch.groupValues[1]
+                val extendsList = mutableListOf<String>()
+                val inheritMatch = Regex("""interface\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*:\s*([^{]+)""").find(line)
+                if (inheritMatch != null) {
+                    val bases = inheritMatch.groupValues[2]
+                        .split(",")
+                        .map { it.trim().substringBefore("(").substringBefore("<").trim() }
+                        .filter { it.isNotEmpty() }
+                    extendsList.addAll(bases)
+                    bases.forEach { base ->
+                        relationships.add(
+                            ProjectRelationship(
+                                sourceSymbol = interfaceName,
+                                targetSymbol = base,
+                                relationshipType = "extends"
+                            )
+                        )
+                    }
+                }
+                symbols.add(
+                    ProjectSymbol(
+                        name = interfaceName,
+                        type = "Interface",
+                        location = "${file.absolutePath}:${index + 1}",
+                        language = "Kotlin",
+                        references = emptyList(),
+                        visibility = visibility,
+                        isOverride = isOverride,
+                        annotations = pendingAnnotations.toList(),
+                        extendsList = extendsList
+                    )
+                )
+                pendingAnnotations.clear()
+                continue
+            }
+
+            val objectMatch = objectRegex.find(line)
+            if (objectMatch != null) {
+                val objectName = objectMatch.groupValues[1]
+                symbols.add(
+                    ProjectSymbol(
+                        name = objectName,
+                        type = "Object",
+                        location = "${file.absolutePath}:${index + 1}",
+                        language = "Kotlin",
+                        references = emptyList(),
+                        visibility = visibility,
+                        isOverride = isOverride,
+                        annotations = pendingAnnotations.toList(),
+                        extendsList = emptyList()
+                    )
+                )
+                pendingAnnotations.clear()
+                continue
+            }
+
+            val functionMatch = functionRegex.find(line)
+            if (functionMatch != null) {
+                val functionName = functionMatch.groupValues[1]
+                symbols.add(
+                    ProjectSymbol(
+                        name = functionName,
+                        type = "Function",
+                        location = "${file.absolutePath}:${index + 1}",
+                        language = "Kotlin",
+                        references = emptyList(),
+                        visibility = visibility,
+                        isOverride = isOverride,
+                        annotations = pendingAnnotations.toList(),
+                        extendsList = emptyList()
+                    )
+                )
+                pendingAnnotations.clear()
+                continue
+            }
+
+            val propertyMatch = propertyRegex.find(line)
+            if (propertyMatch != null) {
+                val propertyName = propertyMatch.groupValues[2]
+                symbols.add(
+                    ProjectSymbol(
+                        name = propertyName,
+                        type = "Property",
+                        location = "${file.absolutePath}:${index + 1}",
+                        language = "Kotlin",
+                        references = emptyList(),
+                        visibility = visibility,
+                        isOverride = isOverride,
+                        annotations = pendingAnnotations.toList(),
+                        extendsList = emptyList()
+                    )
+                )
+                pendingAnnotations.clear()
+                continue
+            }
+
+            val constructorMatch = constructorRegex.find(line)
+            if (constructorMatch != null) {
+                symbols.add(
+                    ProjectSymbol(
+                        name = "constructor",
+                        type = "Constructor",
+                        location = "${file.absolutePath}:${index + 1}",
+                        language = "Kotlin",
+                        references = emptyList(),
+                        visibility = visibility,
+                        isOverride = isOverride,
+                        annotations = pendingAnnotations.toList(),
+                        extendsList = emptyList()
+                    )
+                )
+                pendingAnnotations.clear()
+                continue
+            }
+
+            if (trimmedLine.isNotEmpty() && lineAnnotations.isEmpty() && packMatch == null && importMatch == null) {
+                pendingAnnotations.clear()
             }
         }
     }

@@ -98,6 +98,14 @@ The Intelligence Foundation provides the abstract contracts required for advance
 - **Language Services**: `LanguageServiceProvider` provides abstractions for typical LSP-like features (Syntax Analysis, Symbol Lookup, Completions).
 - **Diagnostics Intelligence**: `DiagnosticProvider` standardizes error and warning reporting from compilers, static analysis, and AI suggestions.
 - **Symbol Indexing**: Defines `SymbolIndex` and `SymbolRepository` contracts for abstract tracking of project-wide classes, functions, and relationships.
+
+### 11. Code Intelligence Lifecycle (Phase 17)
+Upgrades xIDE with real-time code-aware intelligence, transitioning Xero from standard file-level understanding to deep semantic code relationships.
+- **Symbol Harvesting**: The upgraded regex engine indexes functions, properties, constructors, interfaces, annotations, and visibility modifiers.
+- **Navigation Engine**: `CodeNavigator` tracks symbol declarations, handles definition lookup, and builds global usage reference graphs.
+- **Explanation Service**: `CodeExplanationService` provides lightweight, structured, and token-restricted summaries of code units and relationships.
+- **Diagnostic Grouping**: `DiagnosticAnalyzer` tracks compiler diagnostics, groups secondary errors under their likely primary triggers, and isolates candidate root causes.
+- **Developer Query System**: `QueryRouter` directs queries ("Explain this function", "Why is my build failing") into appropriate intelligence providers under read-only security gates.
 - **Xero Connection**: `XeroContextProvider` bridges the gap between active workspace status and the AI assistant, strictly returning structured requests and contexts.
 
 ### 11. Automation & Build Intelligence (Phase 6)
@@ -238,6 +246,33 @@ User UI / Xero Proposes
          ↓
    State Flow (SUCCESS / FAILED) -> Rendered to UI
 ```
+
+
+### 23. AI-Assisted Development Workflow Foundation (Phase 16)
+xIDE establishes a highly secure, formal foundation for safe AI-assisted engineering workflows. Xero is strictly treated as an assistant that *proposes* actions, requiring explicit user approval before execution.
+
+- **AI Action Hierarchy**: All agent operations are strictly modeled via `AIAction` representations (CreateFile, ModifyFile, DeleteFile, RenameFile, ExplainCode, AnalyzeError, SuggestFix) with precise classifications for `RiskLevel` (LOW, MEDIUM, HIGH) and `ApprovalRequirement` (READ_ONLY vs EXPLICIT_CONFIRMATION).
+- **Human Approval Boundary**: The `ActionApprovalManager` state machine manages lifecycle state transitions (PENDING, APPROVED, REJECTED, EXECUTING, COMPLETED, FAILED). Filesystem-changing actions (CREATE, MODIFY, DELETE, RENAME) are initially forced to `PENDING` and are blocked from executing until explicitly authorized by the user.
+- **Modification Preview System**: `ChangePreview` generates content-aware details including file names, lines added, lines deleted, SHA-256 original content hashes, and impact analysis (LOW, MEDIUM, HIGH) prior to execution.
+- **Safe Execution Provider**: `AIFileOperationProvider` routes all authorized agent filesystem changes exclusively through `VirtualFileSystem`, enforcing path validation boundaries and injecting active compiler diagnostics dynamically.
+- **Deterministic Rollbacks**: The `ChangeHistory` subsystem maintains a history of changes allowing secure, full reverting of changes via `rollbackLastChange()`.
+
+```
+ Xero Engine
+     ↓ Proposes
+ AIAction (Create/Modify/Delete/Rename)
+     ↓
+ ActionApprovalManager (Forces PENDING state)
+     ↓ Explicit User Approval
+ ActionApprovalManager (Transition to APPROVED)
+     ↓
+ AIFileOperationProvider (Exclusively routes to VFS)
+     ↓ Writes
+ VirtualFileSystem
+     ↓ Generates
+ RollbackInfo -> Recorded to ChangeHistory
+```
+
 
 
 

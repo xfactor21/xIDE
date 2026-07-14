@@ -9,7 +9,16 @@ data class XeroProjectContext(
     val activeFile: String?,
     val recentChanges: List<String>,
     val buildStatus: String,
-    val diagnostics: List<String>
+    val diagnostics: List<String>,
+    val availableActions: List<String> = emptyList(),
+    val pendingApprovals: List<String> = emptyList(),
+    val recentAiOperations: List<String> = emptyList(),
+    val previousChanges: List<String> = emptyList(),
+    val symbolInformation: List<String> = emptyList(),
+    val relatedFiles: List<String> = emptyList(),
+    val dependencyGraph: Map<String, List<String>> = emptyMap(),
+    val diagnosticRelationships: Map<String, List<String>> = emptyMap(),
+    val codeSummaries: Map<String, String> = emptyMap()
 )
 
 /**

@@ -36,7 +36,11 @@ data class ProjectSymbol(
     val type: String, // Class, Function, Variable, etc.
     val location: String, // File path and range
     val language: String,
-    val references: List<String>
+    val references: List<String> = emptyList(),
+    val visibility: String = "public",
+    val isOverride: Boolean = false,
+    val annotations: List<String> = emptyList(),
+    val extendsList: List<String> = emptyList()
 )
 
 data class ProjectRelationship(

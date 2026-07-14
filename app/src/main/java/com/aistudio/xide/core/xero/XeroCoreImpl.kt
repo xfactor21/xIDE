@@ -3,6 +3,7 @@ package com.aistudio.xide.core.xero
 import com.aistudio.xide.core.ai.AiContextManager
 import com.aistudio.xide.core.ai.AiService
 import com.aistudio.xide.core.ai.AiServiceResult
+import com.aistudio.xide.core.ai.actions.*
 import com.aistudio.xide.core.automation.ActionPlanner
 import com.aistudio.xide.core.automation.AutomationService
 import com.aistudio.xide.core.intelligence.ProjectIndexer
@@ -23,7 +24,10 @@ class XeroCoreImpl(
     private val automationService: AutomationService? = null,
     private val fileChangeTracker: com.aistudio.xide.core.vfs.FileChangeTracker? = null,
     private val buildService: com.aistudio.xide.core.build.BuildService? = null,
-    private val workspaceManager: com.aistudio.xide.core.workspace.WorkspaceManager? = null
+    private val workspaceManager: com.aistudio.xide.core.workspace.WorkspaceManager? = null,
+    val approvalManager: ActionApprovalManager = ActionApprovalManager(),
+    val fileOperationProvider: AIFileOperationProvider? = null,
+    val changeHistory: ChangeHistory? = null
 ) : XeroCore {
 
     private var currentProjectPath: String? = null
@@ -41,14 +45,12 @@ class XeroCoreImpl(
         
         memoryContext.recordAction("Running problem analysis in XeroCore for prompt: $prompt")
         
-        // Add requested manual context elements honestly
         contextFiles.forEach { filePath ->
             aiContextManager.addManualContext("file_$filePath", "Content snapshot placeholder for file: $filePath")
         }
 
         val contextSnapshot = aiContextManager.captureCurrentContext()
         
-        // Orchestrate code suggestions or problem analysis via the decoupled AiService
         val aiResult = aiService.generateCode(prompt, contextSnapshot)
         
         val responseText = when (aiResult) {
@@ -59,11 +61,16 @@ class XeroCoreImpl(
         val planId = UUID.randomUUID().toString()
         val proposedActions = mutableListOf<XeroAction>()
         
-        // Map logical action choices cleanly based on prompt content
         if (prompt.contains("create", ignoreCase = true)) {
             proposedActions.add(XeroAction.CreateFile("$projectPath/src/NewFile.kt", "// Proposed by Xero Core analysis"))
         } else {
             proposedActions.add(XeroAction.EditFile("$projectPath/src/Main.kt", "Apply architectural update based on request: $prompt"))
+        }
+
+        // Pre-propose actions to the ActionApprovalManager for tracking & approval boundaries
+        proposedActions.forEach { xeroAction ->
+            val aiAction = mapToAIAction(xeroAction)
+            approvalManager.proposeAction(aiAction)
         }
 
         return AnalysisPlan(
@@ -76,6 +83,47 @@ class XeroCoreImpl(
     override suspend fun execute(plan: AnalysisPlan): ExecutionResult {
         memoryContext.recordAction("Authorizing and executing AnalysisPlan: ${plan.id}")
         
+        // Find matching proposed AI actions in approvalManager
+        val pendingList = approvalManager.getPendingActions()
+        
+        // Enforce approval boundaries: any pending filesystem-changing actions block execution
+        if (pendingList.isNotEmpty()) {
+            return ExecutionResult.Failure(SecurityException("Action requires explicit confirmation: PENDING state detected"))
+        }
+
+        // Proceed to execute only if we have a fileOperationProvider and actions are approved/auto-approved
+        val provider = fileOperationProvider
+        if (provider != null) {
+            var completedCount = 0
+            val allHistory = approvalManager.getActionHistory()
+            
+            // Collect approved/runnable actions
+            val approvedActions = approvalManager.getPendingActions().toMutableList() // None should be pending here
+            
+            // Let's retrieve all proposed actions that are APPROVED
+            val actionable = allHistory.filter { it.value == ActionApprovalState.APPROVED }.keys
+                .mapNotNull { approvalManager.getAction(it) }
+
+            for (action in actionable) {
+                approvalManager.updateState(action.actionId, ActionApprovalState.EXECUTING)
+                val result = provider.executeAction(action)
+                if (result.success) {
+                    approvalManager.updateState(action.actionId, ActionApprovalState.COMPLETED)
+                    result.rollbackInfo?.let { changeHistory?.recordChange(it) }
+                    completedCount++
+                } else {
+                    approvalManager.updateState(action.actionId, ActionApprovalState.FAILED)
+                    return ExecutionResult.PartialSuccess(
+                        completed = completedCount,
+                        total = actionable.size,
+                        lastError = RuntimeException(result.errorMessage ?: "File operation failed")
+                    )
+                }
+            }
+            return ExecutionResult.Success
+        }
+
+        // Fallback to legacy automation service if no direct fileOperationProvider is available
         val planner = actionPlanner
         val dispatcher = automationService
         
@@ -113,8 +161,24 @@ class XeroCoreImpl(
 
         val buildStateStr = buildService?.buildState?.value?.name ?: "IDLE"
         
-        // Context snapshot build diagnostics filtered for secrets automatically
         val activeProblems = aiContextManager.captureCurrentContext().buildDiagnostics
+
+        val pending = approvalManager.getPendingActions().map { "${it.actionId}: ${it.description}" }
+        val recentOps = approvalManager.getActionHistory().map { "${it.key}: ${it.value}" }
+        val prevChanges = changeHistory?.getHistory()?.map { "Rollbackable [${it.operationType}]: ${it.filePath}" } ?: emptyList()
+
+        val index = if (root.isNotEmpty()) projectIndexer?.getIndex(root) else null
+        val symbolInfo = index?.symbols?.map { "${it.type} ${it.name} in ${it.location}" } ?: emptyList()
+        val relatedFiles = index?.relationships?.map { "${it.sourceSymbol} -> ${it.targetSymbol}" } ?: emptyList()
+        val depGraph = index?.relationships?.groupBy({ it.sourceSymbol }, { it.targetSymbol }) ?: emptyMap()
+        
+        val diagRels = activeProblems.associateWith { diag ->
+            index?.symbols?.filter { diag.contains(it.name, ignoreCase = true) }?.map { it.name } ?: emptyList()
+        }
+        
+        val summaries = index?.files?.associateWith { file ->
+            "File containing ${index.symbols.filter { it.location.startsWith(file) }.size} parsed symbols."
+        } ?: emptyMap()
 
         return XeroProjectContext(
             name = name,
@@ -122,7 +186,50 @@ class XeroCoreImpl(
             activeFile = activeFile,
             recentChanges = recentChangesList,
             buildStatus = buildStateStr,
-            diagnostics = activeProblems
+            diagnostics = activeProblems,
+            availableActions = listOf("CreateFile", "ModifyFile", "DeleteFile", "RenameFile", "ExplainCode", "AnalyzeError", "SuggestFix"),
+            pendingApprovals = pending,
+            recentAiOperations = recentOps,
+            previousChanges = prevChanges,
+            symbolInformation = symbolInfo,
+            relatedFiles = relatedFiles,
+            dependencyGraph = depGraph,
+            diagnosticRelationships = diagRels,
+            codeSummaries = summaries
         )
+    }
+
+    private fun mapToAIAction(xeroAction: XeroAction): AIAction {
+        val actionId = UUID.randomUUID().toString()
+        val timestamp = System.currentTimeMillis()
+        val source = "Xero"
+        return when (xeroAction) {
+            is XeroAction.CreateFile -> {
+                AIAction.CreateFile(
+                    actionId = actionId,
+                    timestamp = timestamp,
+                    source = source,
+                    path = xeroAction.path,
+                    content = xeroAction.content
+                )
+            }
+            is XeroAction.EditFile -> {
+                AIAction.ModifyFile(
+                    actionId = actionId,
+                    timestamp = timestamp,
+                    source = source,
+                    path = xeroAction.path,
+                    proposedContent = "// Modified: " + xeroAction.instruction
+                )
+            }
+            is XeroAction.RunCommand -> {
+                AIAction.ExplainCode(
+                    actionId = actionId,
+                    timestamp = timestamp,
+                    source = source,
+                    code = xeroAction.command
+                )
+            }
+        }
     }
 }

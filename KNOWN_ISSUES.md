@@ -15,9 +15,11 @@ This file tracks known architectural limitations, bugs, and technical debt.
 ## Virtual File System (VFS)
 - **SAF Integration**: `LocalFileSystemProvider` currently relies on standard `java.io.File` APIs. This will violate Scoped Storage on modern Android devices when accessing external directories. Future phases must migrate this to Storage Access Framework (SAF) which introduces asynchronous document trees and permission intents.
 - **VFS Transaction Locking**: Concurrent quick-succession writes could benefit from transactional read/write locking channels to prevent race conditions during heavy parallel file access.
+- **Rollback Limitations**: `ChangeHistory` tracks file change rollbacks linearly via an in-memory stack. If a user manually edits a file outside the AI workflow, or if files are modified out of order, reverting changes can cause merge conflicts or overwrite subsequent modifications. Future updates should introduce semantic visual diff resolution or Git-based branch checkpoints.
 
 ## Project Indexing
-- **Regex-Based AST Approximation**: The lightweight indexing engine parses symbols via optimized regex. While extremely performant, lightweight, and offline-friendly, it does not build a full AST semantic graph, meaning complex inline nested classes or multi-file alias imports might be unresolved.
+- **Regex-Based AST Approximation**: The lightweight indexing engine parses symbols via optimized regex. While extremely performant, lightweight, and offline-friendly, it does not build a full AST semantic graph, meaning complex inline nested classes, multiline function parameters, or multi-file alias imports might be unresolved.
+- **Line-by-Line Parsing Limitations**: Multi-line structures (e.g. annotations on previous lines) are handled via stateful pending buffers, but complex multi-statement single-line definitions or heavily nested blocks can still cause minor matching drift compared to a compiler-grade AST parser.
 
 ## Room Database
 - **Migrations**: WorkspaceDatabase is currently on version 1. Future iterations will require explicit Room migrations when schemas change.
