@@ -87,5 +87,12 @@ To guarantee that compilation tasks remain secure and never allow arbitrary payl
 4. **Isolated Diagnostic Flow**: Logs are scanned and parsed strictly within a text-only regex environment. Unescaped terminal escape codes, ANSI control characters, or malicious command sequences inside compiler output are neutralized to prevent log injection exploits in both local files and AI context models.
 
 
+## Phase 13.5: Build Pipeline Evidence Hardening (New)
+To further isolate execution environments and protect against context leakage during AI-assisted debugging:
+1. **Dynamic Whitelist Enforcement**: Task boundaries defined in `canBuild` are strictly enforced inside `executeBuild`. Any process spawning requests pointing to unsupported operations are rejected immediately with a `security_validation` diagnostic category, bypassing subprocess invocation completely.
+2. **Scrubbing & Redaction Engine**: A dedicated real-time filter inside `DiagnosticsEngineImpl` scrubs any binary ANSI terminal color sequences and redacts highly sensitive credentials (e.g. passwords, authentication keys, tokens) with an immutable `[REDACTED_SECRET]` token.
+3. **Reasoning Buffer Truncation**: A protective length threshold is placed on active diagnostic logs to limit individual diagnostic messages to 1000 characters. This prevents malicious files from intentionally failing compile processes and injecting enormous data payloads to overflow, hijack, or exhaust the AI reasoning window.
+
+
 
 

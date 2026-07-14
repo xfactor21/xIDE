@@ -55,6 +55,25 @@ class GradleBuildProvider(
         val rootDir = File(rootPathProvider())
         val gradlew = File(rootDir, "gradlew")
 
+        // 0. Enforce whitelisted task execution
+        if (!canBuild(request)) {
+            val endTime = System.currentTimeMillis()
+            return@withContext BuildResult(
+                success = false,
+                artifactInfo = null,
+                diagnostics = listOf(
+                    BuildDiagnostic(
+                        category = "security_validation",
+                        severity = DiagnosticSeverity.ERROR,
+                        message = "Unauthorized Gradle task requested: '${request.operation}'. Allowed tasks: assembleDebug, compileDebugKotlin, test, lint, build."
+                    )
+                ),
+                startTime = startTime,
+                endTime = endTime,
+                message = "Build rejected: Unauthorized or unvalidated Gradle task requested."
+            )
+        }
+
         // 1. Validate environment
         if (!gradlew.exists()) {
             val endTime = System.currentTimeMillis()

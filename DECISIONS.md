@@ -120,5 +120,10 @@
 **Reason**: Strict modularity and enhanced reasoning capabilities. Having a dedicated build abstraction protects xIDE from tying itself to operating system process parameters, and the centralized diagnostics engine establishes a structural context pathway (Compiler -> Parser -> Context Manager -> Xero) allowing Xero to locate and comprehend compile errors down to specific files, lines, and columns.
 
 
+## 30. Build Pipeline Whitelisting and Real-Time Log Sanitization
+**Decision**: Enforce a strict task whitelist inside `GradleBuildProvider.executeBuild` and execute automated cleaning, redacting, and size-limiting procedures within the central `DiagnosticsEngineImpl`.
+**Reason**: To guarantee the execution of Gradle remains completely secure against task-injection attacks or process manipulation, and ensure that ANSI colors, sensitive tokens (API keys/secrets), or massive trace files never pollute or overflow the AI reasoning context. This builds absolute trust in the AI-assisted developer loop.
+
+
 
 

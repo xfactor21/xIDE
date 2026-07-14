@@ -209,3 +209,11 @@ BuildAutomationProvider (AutomationProvider)
 ```
 
 
+### 21. Build Pipeline Evidence Audit & Hardening (Phase 13.5)
+To ensure xIDE's build pipeline is secure, real, and compliant, a thorough audit and hardening pass was executed:
+- **Task Whitelisting & Sandboxing**: `GradleBuildProvider` has been hardened to strictly reject non-whitelisted Gradle operations inside `executeBuild`. Only the specific tasks `assembleDebug`, `compileDebugKotlin`, `test`, `lint`, and `build` are executed, entirely blocking arbitrary task or shell execution.
+- **Log Sanitization & Context Security**: The `DiagnosticsEngineImpl` has been upgraded with automated log sanitization. Raw process logs are scrubbed of ANSI terminal characters, and credentials or API keys (e.g., matching typical key formats or keywords) are automatically replaced with `[REDACTED_SECRET]` tokens.
+- **Buffer Limitations**: To prevent AI context bloating or denial-of-service (DoS) via huge compiler log outputs, diagnostic messages and raw outputs are strictly truncated at 1000 characters before entering the engine state.
+- **Evidence-Based Artifact Discovery**: Artifact details (`ArtifactInfo`) are generated exclusively when a real compiler execution succeeds AND `apkFile.exists()` passes validation, guaranteeing no assumed or mock artifacts are reported to Xero.
+
+

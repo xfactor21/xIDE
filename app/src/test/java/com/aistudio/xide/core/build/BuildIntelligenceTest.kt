@@ -151,4 +151,47 @@ class BuildIntelligenceTest {
             testProjectDir.deleteRecursively()
         }
     }
+
+    @Test
+    fun testGradleBuildProviderTaskWhitelistSecurity() {
+        runBlocking {
+            val provider = GradleBuildProvider { "/tmp/non_existent_path" }
+            val request = BuildRequest("app", "debug", "maliciousGradleTask")
+            
+            val result = provider.executeBuild(request)
+            assertFalse(result.success)
+            assertEquals(1, result.diagnostics.size)
+            assertEquals("security_validation", result.diagnostics[0].category)
+            assertTrue(result.message.contains("Unauthorized or unvalidated"))
+        }
+    }
+
+    @Test
+    fun testDiagnosticsEngineLogSanitization() {
+        val engine = DiagnosticsEngineImpl()
+        
+        // Test ANSI scrub, secret redaction, and size limit truncation
+        val rawMessageWithSecretsAndAnsi = "\u001B[31mError during build, api_key=\"AIzaSyMySuperSecretAPIKeyPattern\" for project. " + "A".repeat(1200)
+        val buildDiag = BuildDiagnostic(
+            category = "compiler",
+            severity = DiagnosticSeverity.ERROR,
+            message = rawMessageWithSecretsAndAnsi,
+            rawOutput = rawMessageWithSecretsAndAnsi
+        )
+        
+        engine.addDiagnostic(buildDiag)
+        
+        val sanitizedDiagnostics = engine.activeDiagnostics.value
+        assertEquals(1, sanitizedDiagnostics.size)
+        
+        val firstSanitized = sanitizedDiagnostics[0]
+        
+        // Assert ANSI sequence removed
+        assertFalse(firstSanitized.message.contains("\u001B[31m"))
+        // Assert secret redacted
+        assertTrue(firstSanitized.message.contains("api_key=[REDACTED_SECRET]"))
+        // Assert truncation took place
+        assertTrue(firstSanitized.message.contains("[TRUNCATED]"))
+        assertTrue(firstSanitized.message.length <= 1050) // 1000 + "... [TRUNCATED]" prefix/suffix length
+    }
 }
