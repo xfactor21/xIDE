@@ -1,0 +1,14 @@
+--- ARCHITECTURE.md
++++ ARCHITECTURE.md
+@@ -102,9 +102,9 @@
+ 
+ ### 16. Intelligent Workspace Orchestration (Phase 9)
+-- **XeroActionEngine**: Maps `XeroTaskResult` into executable commands. Binds to `ApprovalManager` for safety.
+-- **ProjectUnderstandingEngine**: Generates a unified `ProjectContext` (type, languages, problems) for Xero.
++- **XeroActionEngine**: Maps `XeroTaskResult` into immutable `ActionDescriptor`s. Binds to `ApprovalManager` for safety.
++- **ProjectUnderstandingEngine**: Generates a unified `ProjectContext` (type, languages, problems) for Xero via registered `ProjectContextProvider`s.
+ - **ApprovalManager**: Enforces human-in-the-loop constraints on sensitive commands.
+-- **RecoveryEngine**: Generates `RecoveryPlan` (with commands and explanations) when an operation (like compilation) fails.
++- **RecoveryEngine**: Generates an `ActionPlan` (with commands and explanations) when an operation fails via `RecoveryStrategyProvider`s.
++- **TaskPlanningEngine**: Plans actions via `TaskPlannerProvider`s.
+ - **AutomationHistoryRepository**: Stores execution results (`taskId`, `userApproved`, `resultStatus`) for auditing and AI context.
