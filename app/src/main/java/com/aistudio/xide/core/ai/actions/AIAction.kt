@@ -36,7 +36,6 @@ sealed class AIAction {
         override val source: String,
         val path: String,
         val proposedContent: String,
-        val diffModel: ChangeDiffModel? = null,
         override val description: String = "Modify file at $path",
         override val riskLevel: RiskLevel = RiskLevel.HIGH,
         override val approvalRequirement: ApprovalRequirement = ApprovalRequirement.EXPLICIT_CONFIRMATION
@@ -63,19 +62,6 @@ sealed class AIAction {
         val oldPath: String,
         val newPath: String,
         override val description: String = "Rename file from $oldPath to $newPath",
-        override val riskLevel: RiskLevel = RiskLevel.MEDIUM,
-        override val approvalRequirement: ApprovalRequirement = ApprovalRequirement.EXPLICIT_CONFIRMATION
-    ) : AIAction() {
-        override val targetFiles: List<String> = listOf(oldPath, newPath)
-    }
-
-    data class MoveFile(
-        override val actionId: String,
-        override val timestamp: Long,
-        override val source: String,
-        val oldPath: String,
-        val newPath: String,
-        override val description: String = "Move file from $oldPath to $newPath",
         override val riskLevel: RiskLevel = RiskLevel.MEDIUM,
         override val approvalRequirement: ApprovalRequirement = ApprovalRequirement.EXPLICIT_CONFIRMATION
     ) : AIAction() {

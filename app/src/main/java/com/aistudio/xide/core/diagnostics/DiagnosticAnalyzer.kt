@@ -8,24 +8,7 @@ data class DiagnosticGroup(
     val suggestedActions: List<String>
 )
 
-data class DiagnosticChain(
-    val rootCause: String,
-    val relatedErrors: List<String>,
-    val suggestedResolution: String
-)
-
 class DiagnosticAnalyzer(private val diagnosticsEngine: DiagnosticsEngine) {
-
-    fun buildDiagnosticChains(): List<DiagnosticChain> {
-        val groups = analyzeDiagnostics()
-        return groups.map { group ->
-            DiagnosticChain(
-                rootCause = group.rootCauseCandidates.firstOrNull() ?: group.primaryError,
-                relatedErrors = group.secondaryErrors,
-                suggestedResolution = group.suggestedActions.joinToString("\n")
-            )
-        }
-    }
 
     fun analyzeDiagnostics(): List<DiagnosticGroup> {
         val diagnostics = diagnosticsEngine.activeDiagnostics.value

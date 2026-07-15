@@ -2,30 +2,16 @@ package com.aistudio.xide.core.ai.actions
 
 import java.security.MessageDigest
 
-data class DiffSegment(
-    val type: SegmentType,
-    val content: String,
-    val lineStart: Int,
-    val lineEnd: Int
-)
-
-enum class SegmentType {
-    ADDED, REMOVED, MODIFIED, UNCHANGED
-}
-
 data class ChangePreview(
     val affectedFiles: List<String>,
     val originalContentHash: String,
     val proposedChanges: String,
     val linesAdded: Int,
     val linesDeleted: Int,
-    val estimatedImpact: String,
-    val segments: List<DiffSegment> = emptyList(),
-    val fileMetadata: Map<String, String> = emptyMap(),
-    val changeExplanation: String = ""
+    val estimatedImpact: String
 ) {
     companion object {
-        fun generate(filePath: String, originalContent: String, proposedContent: String, explanation: String = ""): ChangePreview {
+        fun generate(filePath: String, originalContent: String, proposedContent: String): ChangePreview {
             val hash = sha256(originalContent)
             
             val originalLines = originalContent.lines()
@@ -37,10 +23,6 @@ data class ChangePreview(
             
             val added = proposedLines.filter { !origSet.contains(it) }.size
             val deleted = originalLines.filter { !propSet.contains(it) }.size
-            
-            val segments = mutableListOf<DiffSegment>()
-            // Mocking segment generation for Phase 22 foundation
-            segments.add(DiffSegment(SegmentType.MODIFIED, "Simulated diff content", 1, proposedLines.size))
             
             val impact = when {
                 added + deleted > 100 -> "HIGH: Extensive modification of logic."
@@ -54,10 +36,7 @@ data class ChangePreview(
                 proposedChanges = proposedContent,
                 linesAdded = added,
                 linesDeleted = deleted,
-                estimatedImpact = impact,
-                segments = segments,
-                fileMetadata = mapOf("extension" to filePath.substringAfterLast('.')),
-                changeExplanation = explanation
+                estimatedImpact = impact
             )
         }
         

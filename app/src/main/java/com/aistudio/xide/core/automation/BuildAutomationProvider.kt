@@ -1,6 +1,5 @@
 package com.aistudio.xide.core.automation
 
-import com.aistudio.xide.core.build.APKArtifactResolver
 import com.aistudio.xide.core.build.ArtifactResolver
 import com.aistudio.xide.core.build.BuildProvider
 import com.aistudio.xide.core.build.BuildRequest
@@ -24,7 +23,7 @@ class BuildAutomationProvider(
         buildProvider: BuildProvider,
         diagnosticsEngine: DiagnosticsEngine
     ) : this(
-        BuildServiceImpl(listOf(buildProvider), diagnosticsEngine, APKArtifactResolver { "." }),
+        BuildServiceImpl(listOf(buildProvider), diagnosticsEngine, ArtifactResolver { "." }),
         diagnosticsEngine
     )
 

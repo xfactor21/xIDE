@@ -1,6 +1,6 @@
 # Project State: xIDE
 
-## Current Phase: Phase 20 Developer Workspace Experience & Xero IDE Surface Foundation (Completed)
+## Current Phase: Phase 17 Intelligent Code Understanding & Developer Assistance Foundation (Completed)
 
 **Date:** July 14, 2026
 **Status:** Completed and Verified
@@ -39,52 +39,16 @@
     *   Created `DiagnosticAnalyzer` to group compile errors under candidate root causes and suggest actionable developer fixes.
     *   Wired the global natural-language query engine `QueryRouter` directing developer questions to code navigation, explanations, or diagnostic analyzers.
     *   Completed thorough, 100% passing unit test suites: `CodeIntelligenceTest`, `CodeNavigatorTest`, `CodeExplanationTest`, `DiagnosticAnalyzerTest`, `DeveloperQueryTest`, and `XeroCodeBoundaryTest`. All xIDE tests are running 100% green.
-*   **Phase 18**: Intelligent Development Assistant Interface Foundation (Complete)
-    *   Created `XeroConversationEngine` acting as the coordinator for user dialog flows and assistant states.
-    *   Implemented `DeveloperIntent` classifier supporting `EXPLAIN_CODE`, `DEBUG_ERROR`, `FIND_SYMBOL`, `SEARCH_PROJECT`, `ANALYZE_BUILD`, `SUGGEST_IMPROVEMENT`, and `CREATE_ACTION_PROPOSAL`.
-    *   Built `ContextSelector` targeting active file focus, dependencies, recent changes, build logs, and symbol details, while guarding against project dumps and secret leakages.
-    *   Defined the extensible typed `XeroResponse` outcomes with confidence indices, related symbols, and next-steps.
-    *   Structured local `ConversationHistory` supporting secure FIFO capacity and token redaction filters.
-    *   Exposed `XeroAssistantState` (`IDLE`, `THINKING`, `ANALYZING`, `RESPONDING`, `WAITING_APPROVAL`, `ERROR`) through a reactive StateFlow.
-    *   Completed comprehensive unit test coverage: `ConversationEngineTest`, `IntentClassifierTest`, `ContextSelectorTest`, `XeroResponseTest`, `ConversationHistoryTest`, and `XeroAssistantStateTest`. All xIDE tests are running 100% green.
-*   **Phase 20**: Developer Workspace Experience & Xero IDE Surface Foundation (Complete)
-    *   Designed and created the master `DeveloperWorkspaceScreen` using Material Design 3 and responsive, multi-pane window class adaptive boundaries.
-    *   Implemented `ProjectExplorerPanel` coordinating files, sub-folders, Breadcrumbs, and query-based search directly over `VirtualFileSystem`.
-    *   Developed `EditorWorkspacePanel` tracking open documents, handling cursor positions, and exposing selections.
-    *   Integrated `XeroAssistantPanel` offering beautiful chat threads, prominent WAITING_APPROVAL attention banners, and interactive proposal cards for human-in-the-loop validation.
-    *   Delivered `DiagnosticsPanel` grouping error items by category, showing line locations, and facilitating instant navigation on click.
-    *   Built `BuildPanel` supporting assembleDebug compilation triggers, and displaying generated APK artifact sizes and metrics.
-    *   Created `WorkspaceNavigationManager` managing active files and panel state flows.
-    *   Wrote thorough Robolectric test suites testing the complete workspace navigation flow, editor tracking context, VFS list mockups, build panel integrations, and security boundary guarantees.
-*   **Phase 20.5**: Developer Workspace Surface Integration Audit & Hardening (Complete)
-    *   Executed comprehensive workflow audit proving end-to-end integration across all UI components and background engines.
-    *   Verified interactive `ActionProposalCard` approval boundaries actually trigger secure filesystem operations via `VirtualFileSystem`.
-    *   Validated VFS integration within `XeroAssistantPanel` ensuring only authorized, validated AI operations modify the project scope.
-    *   Verified decoupled `WorkspaceNavigationManager` routing and cross-panel lifecycle coordination.
-    *   Completed strict safety checks against layout rendering logic, VFS traversal restrictions, and non-simulated runtime data.
-*   **Phase 21**: Advanced Code Intelligence & Assisted Engineering Foundation (Complete)
-*   **Phase 22**: Semantic Editor Intelligence & Coding Experience Foundation (Complete)
-    *   Enhanced `ActiveEditorContext` with deep cursor and symbol awareness.
-    *   Implemented `EditorAnalysisEngine` for live syntax and import checking.
-    *   Created `CodeImprovementAnalyzer` generating non-mutating `ImprovementSuggestion`s.
-    *   Upgraded `CodeNavigator` with hierarchy and related symbol traversal.
-    *   Expanded `ChangePreview` with block-level semantic diff capabilities.
-    *   Enhanced `ProjectIndexerImpl` symbol intelligence.
-    *   Upgraded `VirtualFileSystem` and `FileSystemProvider` with `renameFile`/`moveFile` support, strictly validated against workspace boundaries.
-    *   Implemented `ChangeDiffModel` establishing the foundational data structures for visual UI diffs.
-    *   Expanded `XeroProjectContext` to capture recent changes, symbol relationships, dependencies, and editor states.
-    *   Upgraded `DiagnosticAnalyzer` to emit `DiagnosticChain`s featuring root causes and mapped resolutions.
-    *   Expanded `DeveloperQuery` routing capabilities to resolve architecture, dependencies, and recent change histories.
+
+
 
 ### Current Architecture Maturity
-*   All UI panels interact strictly with core provider interfaces, preserving clean architectural decoupling.
-*   Security boundaries are rigorously maintained; no UI element has direct mutation access or bypassing paths.
-*   The IDE adapts layout density and visible panels fluently depending on screen space classification.
-*   Xero can suggest changes which are queued for manual confirmation in the chat list.
+*   Xero can propose tasks using immutable `ActionDescriptor`s, which must clear explicit human approvals via `ApprovalManager`.
+*   Providers are entirely decoupled from Xero and operate via extension points.
+*   Data models have been deduplicated to form a canonical representation of the workspace.
+*   The AI agent features a secure, validated, and statefully persistent reasoning engine.
 
 ### Remaining Technical Debt
 *   Hilt annotations in UI entry points are temporarily disabled.
 *   Actual cloud workspace integrations are mocked for local testing.
 
-
-- Phase 22.6: Build Pipeline Recovery & Evidence Restoration (Complete)

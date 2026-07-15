@@ -73,8 +73,8 @@ class DeveloperQueryTest {
         assertTrue(response is QueryResponse.BuildAnalysis)
         val analysis = response as QueryResponse.BuildAnalysis
         assertTrue(analysis.message.contains("Discovered"))
-        assertEquals(1, analysis.diagnosticChains.size)
-        assertTrue(analysis.diagnosticChains.first().rootCause.contains("Unmatched parentheses"))
+        assertEquals(1, analysis.diagnosticGroups.size)
+        assertTrue(analysis.diagnosticGroups.first().primaryError.contains("Syntax error"))
     }
 
     @Test
